@@ -6,11 +6,19 @@ import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import me.neznamy.tab.bridge.shared.BridgePlayer;
 import me.neznamy.tab.bridge.shared.TABBridge;
 import me.neznamy.tab.bridge.shared.features.TabExpansion;
+import me.neznamy.tab.bridge.shared.message.outgoing.RegisterPlaceholder;
 import me.neznamy.tab.bridge.shared.placeholder.PlaceholderReplacementPattern;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.WeakHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -51,15 +59,13 @@ public class BridgeTabExpansion extends PlaceholderExpansion implements TabExpan
             return text;
         }
         String value = values.computeIfAbsent(player, pl -> new HashMap<>()).get(identifier);
-        if (value == null) {
-            if (identifier.startsWith("placeholder_")) {
-                String placeholder = "%" + identifier.substring(12) + "%";
-                if (!sentRequests.computeIfAbsent(player, pl -> new HashSet<>()).contains(placeholder)){
-                    BridgePlayer pl = TABBridge.getInstance().getPlayer(player.getUniqueId());
-                    if (pl != null) {
-                        sentRequests.get(player).add(placeholder);
-                        pl.sendMessage("RegisterPlaceholder", placeholder);
-                    }
+        if (value == null && identifier.startsWith("placeholder_")) {
+            String placeholder = "%" + identifier.substring(12) + "%";
+            if (!sentRequests.computeIfAbsent(player, pl -> new HashSet<>()).contains(placeholder)){
+                BridgePlayer pl = TABBridge.getInstance().getPlayer(player.getUniqueId());
+                if (pl != null) {
+                    sentRequests.get(player).add(placeholder);
+                    pl.sendPluginMessage(new RegisterPlaceholder(placeholder));
                 }
             }
         }
@@ -67,8 +73,8 @@ public class BridgeTabExpansion extends PlaceholderExpansion implements TabExpan
     }
 
     @Override
-    public void setValue(Object player, String identifier, String value) {
-        values.computeIfAbsent((Player) player, p -> new HashMap<>()).put(identifier, value);
+    public void setValue(BridgePlayer player, String identifier, String value) {
+        values.computeIfAbsent((Player) player.getPlayer(), p -> new HashMap<>()).put(identifier, value);
     }
 
     public @NotNull List<String> detectPlaceholders(@NotNull String text) {

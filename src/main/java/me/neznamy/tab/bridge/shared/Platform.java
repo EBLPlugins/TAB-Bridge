@@ -3,9 +3,7 @@ package me.neznamy.tab.bridge.shared;
 import com.google.common.io.ByteArrayDataInput;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelDuplexHandler;
-import me.neznamy.tab.bridge.shared.features.TabExpansion;
 import me.neznamy.tab.bridge.shared.placeholder.Placeholder;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.NoSuchElementException;
 import java.util.UUID;
@@ -26,8 +24,6 @@ public interface Platform {
 
     void readUnlimitedNametagMessage(BridgePlayer player, ByteArrayDataInput input);
 
-    void registerExpansion(@NotNull TabExpansion expansion);
-
     BridgePlayer newPlayer(Object player, int protocolVersion);
 
     Placeholder createPlaceholder(String publicIdentifier, String privateIdentifier, int refresh);
@@ -43,6 +39,7 @@ public interface Platform {
         try {
             channel.pipeline().addBefore("packet_handler", "TAB-Bridge", handler);
         } catch (NoSuchElementException | IllegalArgumentException ignored) {
+            // some sort of netty bug
         }
     }
 
@@ -53,6 +50,7 @@ public interface Platform {
             if (channel.pipeline().names().contains("TAB-Bridge"))
                 channel.pipeline().remove("TAB-Bridge");
         } catch (NoSuchElementException ignored) {
+            // some sort of netty bug
         }
     }
 

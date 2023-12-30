@@ -12,7 +12,13 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.WeakHashMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -61,7 +67,7 @@ public class BridgeNameTagX implements Listener {
         if (target == viewer || isPlayerDisabled(target) || target.getPlayer().isDead()) return;
         if (viewer.getPlayer().getWorld() != target.getPlayer().getWorld()) return;
         if (getDistance(viewer, target) <= 48 && viewer.getPlayer().canSee(target.getPlayer()) && !target.isVanished()) {
-            if (viewer.getPlayer().canSee(target.getPlayer())) getArmorStandManager(target).spawn(viewer);
+            getArmorStandManager(target).spawn(viewer);
         }
     }
 
@@ -154,7 +160,9 @@ public class BridgeNameTagX implements Listener {
             asm.destroy();
         }
         if (action.equals("SetText")) {
-            asm.getArmorStand(in.readUTF()).setText(in.readUTF(), in.readUTF());
+            String line = in.readUTF();
+            String text = in.readUTF();
+            asm.getArmorStand(line).setText(text);
         }
         if (action.equals("Pause")) {
             playersDisabledWithAPI.add(receiver);

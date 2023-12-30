@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "me.neznamy"
-version = "3.1.3"
+version = "5.0.2"
 
 dependencies {
     implementation(libs.annotations)
@@ -16,6 +16,10 @@ dependencies {
     compileOnly(libs.papi)
     compileOnly(libs.vault)
     compileOnly(libs.netty)
+    compileOnly("net.luckperms:api:5.4")
+    compileOnly("net.kyori:adventure-api:4.13.0")
+    compileOnly("net.kyori:adventure-text-serializer-legacy:4.13.0")
+    compileOnly("net.kyori:adventure-text-minimessage:4.13.0")
     implementation(libs.plugin.lombok)
 }
 

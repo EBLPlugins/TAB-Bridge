@@ -1,10 +1,14 @@
 package me.neznamy.tab.bridge.bukkit;
 
 import lombok.Getter;
+import lombok.SneakyThrows;
 import me.neznamy.tab.bridge.bukkit.nms.NMSStorage;
+import me.neznamy.tab.bridge.bukkit.nms.PacketEntityView;
 import me.neznamy.tab.bridge.shared.BridgePlayer;
 import me.neznamy.tab.bridge.shared.Scoreboard;
 import me.neznamy.tab.bridge.shared.TABBridge;
+import me.neznamy.tab.bridge.shared.hook.LuckPermsHook;
+import me.neznamy.tab.bridge.shared.util.ReflectionUtils;
 import net.milkbowl.vault.permission.Permission;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
@@ -13,12 +17,16 @@ import org.bukkit.metadata.MetadataValue;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.potion.PotionEffectType;
 
+import java.util.Set;
+
+@Getter
 public class BukkitBridgePlayer extends BridgePlayer {
 
     private static final boolean vault = Bukkit.getPluginManager().isPluginEnabled("Vault");
 
-    @Getter private final Player player;
-    @Getter private final Scoreboard scoreboard = new BukkitScoreboard(this);
+    private final Player player;
+    private final Scoreboard scoreboard = new BukkitScoreboard(this);
+    private final PacketEntityView entityView = new PacketEntityView(this);
 
     public BukkitBridgePlayer(Player player, int protocolVersion) {
         super(player.getName(), player.getUniqueId(), protocolVersion);
@@ -26,7 +34,12 @@ public class BukkitBridgePlayer extends BridgePlayer {
     }
 
     @Override
+    @SneakyThrows
+    @SuppressWarnings("unchecked")
     public void sendPluginMessage(byte[] message) {
+        // 1.20.2 bug adding it with a significant delay, add ourselves to make it work
+        // apparently it affects those players on older server version as well, so do this always
+        ((Set<String>) ReflectionUtils.getField(player.getClass(), "channels").get(player)).add(TABBridge.CHANNEL_NAME);
         player.sendPluginMessage(BukkitBridge.getInstance(), TABBridge.CHANNEL_NAME, message);
     }
 
@@ -76,6 +89,9 @@ public class BukkitBridgePlayer extends BridgePlayer {
 
     @Override
     public String checkGroup() {
+        if (LuckPermsHook.getInstance().isInstalled()) {
+            return LuckPermsHook.getInstance().getGroupFunction().apply(this);
+        }
         if (vault) {
             RegisteredServiceProvider<Permission> rsp = Bukkit.getServicesManager().getRegistration(Permission.class);
             if (rsp == null || rsp.getProvider().getName().equals("SuperPerms")) {
@@ -83,9 +99,8 @@ public class BukkitBridgePlayer extends BridgePlayer {
             } else {
                 return rsp.getProvider().getPrimaryGroup(player);
             }
-        } else {
-            return "Vault not found";
         }
+        return "Vault not found";
     }
 
     @Override
