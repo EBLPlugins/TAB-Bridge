@@ -38,7 +38,7 @@ public class BukkitBridge extends JavaPlugin implements PluginMessageListener, L
     
     public void onEnable() {
         instance = this;
-        boolean folia = ReflectionUtils.classExists("io.papermc.paper.threadedregions.RegionizedServer");
+        boolean folia = false; //ReflectionUtils.classExists("io.papermc.paper.threadedregions.RegionizedServer");
         Platform platform = folia ? new FoliaPlatform(this) : new BukkitPlatform(this);
         BridgeTabExpansion expansion = Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI") ? new BridgeTabExpansion() : null;
         TABBridge.setInstance(new TABBridge(platform, expansion));
