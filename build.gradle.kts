@@ -1,50 +1,25 @@
-import org.apache.tools.ant.filters.ReplaceTokens
-
 plugins {
-    id("com.github.johnrengelman.shadow") version "7.1.2"
-    id("io.freefair.lombok") version "6.6.1"
-    java
-    `maven-publish`
+    id("tab.parent")
 }
 
-group = "me.neznamy"
-version = "5.0.2"
-
-dependencies {
-    implementation(libs.annotations)
-    compileOnly(libs.bukkit)
-    compileOnly(libs.papi)
-    compileOnly(libs.vault)
-    compileOnly(libs.netty)
-    compileOnly("net.luckperms:api:5.4")
-    compileOnly("net.kyori:adventure-api:4.13.0")
-    compileOnly("net.kyori:adventure-text-serializer-legacy:4.13.0")
-    compileOnly("net.kyori:adventure-text-minimessage:4.13.0")
-    implementation(libs.plugin.lombok)
+allprojects {
+    group = "me.neznamy"
+    version = "6.0.2"
+    description = "An addon to extend features with TAB on proxy"
 }
 
-publishing {
-    publications.create<MavenPublication>("maven") {
-        from(components["java"])
-    }
-}
+val platforms = setOf(
+    projects.bukkit
+).map { it.dependencyProject }
 
-tasks {
-    compileJava {
-        options.encoding = "UTF-8"
-    }
-    shadowJar {
-        archiveFileName.set("TAB-Bridge-${project.version}.jar")
-    }
-    processResources {
-        filesMatching("plugin.yml") {
-            filter<ReplaceTokens>(mapOf("tokens" to mapOf("version" to project.version)))
-        }
-    }
+val special = setOf(
+    projects.shared
+).map { it.dependencyProject }
 
-    java{
-        toolchain {
-            languageVersion.set(JavaLanguageVersion.of(8))
-        }
+subprojects {
+    when (this) {
+        in platforms -> plugins.apply("tab.platform-conventions")
+        in special -> plugins.apply("tab.standard-conventions")
+        else -> plugins.apply("tab.base-conventions")
     }
 }
