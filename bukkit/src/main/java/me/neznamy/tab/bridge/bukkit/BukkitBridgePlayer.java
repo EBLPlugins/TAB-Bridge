@@ -2,7 +2,6 @@ package me.neznamy.tab.bridge.bukkit;
 
 import lombok.Getter;
 import lombok.NonNull;
-import lombok.SneakyThrows;
 import me.neznamy.tab.bridge.bukkit.hook.LibsDisguisesHook;
 import me.neznamy.tab.bridge.shared.BridgePlayer;
 import me.neznamy.tab.bridge.shared.TABBridge;
@@ -16,8 +15,8 @@ import org.bukkit.potion.PotionEffectType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.lang.reflect.Field;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Bukkit implementation of BridgePlayer.
@@ -30,11 +29,13 @@ public class BukkitBridgePlayer extends BridgePlayer {
     @NotNull
     private final Player player;
 
-    @NotNull
-    private final Set<String> channels;
-
     @Nullable
     private Permission permission;
+
+    private boolean channelRegistered;
+
+    /** Queued messages that were sent before player got their channel registered */
+    private final List<byte[]> queuedMessages = new ArrayList<>();
 
     /**
      * Constructs new instance for given player.
@@ -42,14 +43,10 @@ public class BukkitBridgePlayer extends BridgePlayer {
      * @param   player
      *          Player to create this instance for
      */
-    @SneakyThrows
-    @SuppressWarnings("unchecked")
     public BukkitBridgePlayer(@NonNull Player player) {
-        super(player.getName(), player.getUniqueId());
+        super(player.getName(), player.getUniqueId(), player.getWorld().getName());
         this.player = player;
-        Field channelsField = player.getClass().getDeclaredField("channels");
-        channelsField.setAccessible(true);
-        channels = ((Set<String>) channelsField.get(player));
+        channelRegistered = player.getListeningPluginChannels().contains(TABBridge.CHANNEL_NAME);
         if (vault) {
             RegisteredServiceProvider<Permission> rsp = Bukkit.getServicesManager().getRegistration(Permission.class);
             if (rsp != null) permission = rsp.getProvider();
@@ -57,11 +54,11 @@ public class BukkitBridgePlayer extends BridgePlayer {
     }
 
     @Override
-    @SneakyThrows
     public void sendPluginMessage(byte[] message) {
-        // 1.20.2 bug adding it with a significant delay, add ourselves to make it work
-        // apparently it affects those players on older server version as well, so do this always
-        channels.add(TABBridge.CHANNEL_NAME);
+        if (!channelRegistered) {
+            queuedMessages.add(message);
+            return;
+        }
         player.sendPluginMessage(BukkitBridge.getInstance(), TABBridge.CHANNEL_NAME, message);
     }
 
@@ -114,5 +111,16 @@ public class BukkitBridgePlayer extends BridgePlayer {
     @SuppressWarnings("deprecation")
     public int checkGameMode() {
         return player.getGameMode().getValue();
+    }
+
+    /**
+     * Sends all queued messages to the player after their channel has been registered.
+     */
+    public void sendQueuedMessages() {
+        channelRegistered = true;
+        for (byte[] message : queuedMessages) {
+            sendPluginMessage(message);
+        }
+        queuedMessages.clear();
     }
 }

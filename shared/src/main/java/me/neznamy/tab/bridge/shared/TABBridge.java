@@ -19,7 +19,7 @@ import java.util.concurrent.ScheduledExecutorService;
 public class TABBridge {
 
     public static final String CHANNEL_NAME = "tab:bridge-6";
-    public static final String PLUGIN_VERSION = "6.0.2";
+    public static final String PLUGIN_VERSION = "6.1.5";
     @Getter @Setter private static TABBridge instance;
 
     @Getter private final Platform platform;
@@ -55,6 +55,8 @@ public class TABBridge {
     }
 
     public void submitTask(@NonNull Runnable task) {
+        if (scheduler.isShutdown()) return;
+
         // Executor service swallows exceptions
         scheduler.submit(() -> {
             try {

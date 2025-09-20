@@ -23,8 +23,7 @@ import java.util.function.Function;
 @SuppressWarnings("unchecked")
 public class DataBridge {
 
-    private final Map<Object, List<byte[]>> messageQueue = new WeakHashMap<>();
-    @Getter private final Map<Object, List<IncomingMessage>> messageQueue2 = new WeakHashMap<>();
+    private final Map<UUID, List<byte[]>> messageQueue = new WeakHashMap<>();
     private final Map<String, Placeholder> asyncPlaceholders = new ConcurrentHashMap<>();
     private final Map<String, Placeholder> syncPlaceholders = new ConcurrentHashMap<>();
     private Placeholder[] syncPlaceholderArray = new Placeholder[0];
@@ -67,11 +66,16 @@ public class DataBridge {
         }, 100, 100, TimeUnit.MILLISECONDS);
     }
 
-    public void processPluginMessage(@NonNull Object player, byte[] bytes, boolean retry) {
-        if (!TABBridge.getInstance().getPlatform().isOnline(player)) {
-            messageQueue.computeIfAbsent(player, p -> new ArrayList<>()).add(bytes);
+    public void processPluginMessage(@NonNull UUID uuid, byte[] bytes, boolean retry) {
+        Object player = TABBridge.getInstance().getPlatform().getPlayer(uuid);
+        if (player == null) {
+            messageQueue.computeIfAbsent(uuid, p -> new ArrayList<>()).add(bytes);
             return;
         }
+        processPluginMessage(player, uuid, bytes, retry);
+    }
+
+    public void processPluginMessage(@NonNull Object player, @NonNull UUID uuid, byte[] bytes, boolean retry) {
         ByteArrayDataInput in = ByteStreams.newDataInput(bytes);
         String subChannel = in.readUTF();
         if (subChannel.equals("PlayerJoin")) {
@@ -80,11 +84,11 @@ public class DataBridge {
             groupForwarding = in.readBoolean();
             int placeholderCount = in.readInt();
             BridgePlayer bp = TABBridge.getInstance().getPlatform().newPlayer(player);
+            TABBridge.getInstance().addPlayer(bp);
             for (int i=0; i<placeholderCount; i++) {
                 registerPlaceholder(bp, in.readUTF(), in.readInt());
             }
             readReplacements(in);
-            TABBridge.getInstance().addPlayer(bp);
 
             // Send response
             int gamemode = bp.checkGameMode();
@@ -105,12 +109,12 @@ public class DataBridge {
                     }
                 }
             }
-            processQueue(player);
+            processQueue(player, uuid);
             return;
         }
-        BridgePlayer pl = TABBridge.getInstance().getPlayer(TABBridge.getInstance().getPlatform().getUniqueId(player));
+        BridgePlayer pl = TABBridge.getInstance().getPlayer(uuid);
         if (pl == null) {
-            messageQueue.computeIfAbsent(player, p -> new ArrayList<>()).add(bytes);
+            messageQueue.computeIfAbsent(uuid, p -> new ArrayList<>()).add(bytes);
             return;
         }
         Function<ByteArrayDataInput, IncomingMessage> function = registeredMessages.get(subChannel);
@@ -138,9 +142,9 @@ public class DataBridge {
         this.replacements = replacements;
     }
 
-    public void processQueue(@NonNull Object player) {
-        List<byte[]> list = messageQueue.remove(player);
-        if (list != null) list.forEach(msg -> processPluginMessage(player, msg, true));
+    public void processQueue(@NonNull Object player, @NonNull UUID uuid) {
+        List<byte[]> list = messageQueue.remove(uuid);
+        if (list != null) list.forEach(msg -> processPluginMessage(player, uuid, msg, true));
     }
 
     public void registerPlaceholder(@NonNull BridgePlayer player, @NonNull String identifier, int refresh) {
