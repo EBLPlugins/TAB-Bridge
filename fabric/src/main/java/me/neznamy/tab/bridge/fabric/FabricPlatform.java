@@ -1,9 +1,8 @@
 package me.neznamy.tab.bridge.fabric;
 
-import eu.pb4.placeholders.api.PlaceholderContext;
-import eu.pb4.placeholders.api.Placeholders;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import me.neznamy.tab.bridge.fabric.hook.PlaceholderAPIHook;
 import me.neznamy.tab.bridge.shared.BridgePlayer;
 import me.neznamy.tab.bridge.shared.Platform;
 import me.neznamy.tab.bridge.shared.placeholder.Placeholder;
@@ -25,7 +24,6 @@ import java.util.UUID;
 public class FabricPlatform implements Platform {
 
     private final boolean placeholderAPI = FabricLoader.getInstance().isModLoaded("placeholder-api");
-    private final VersionLoader version;
     private final MinecraftServer server;
 
     @Override
@@ -79,7 +77,7 @@ public class FabricPlatform implements Platform {
         String textBefore;
         do {
             textBefore = text;
-            text = Placeholders.parseText(version.newTextComponent(text), PlaceholderContext.of(player)).getString();
+            text = PlaceholderAPIHook.parsePlaceholders(text, player);
         } while (!textBefore.equals(text));
         return text;
     }

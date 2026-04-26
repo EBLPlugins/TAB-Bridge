@@ -16,7 +16,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Bukkit implementation of BridgePlayer.
@@ -46,10 +48,31 @@ public class BukkitBridgePlayer extends BridgePlayer {
     public BukkitBridgePlayer(@NonNull Player player) {
         super(player.getName(), player.getUniqueId(), player.getWorld().getName());
         this.player = player;
-        channelRegistered = player.getListeningPluginChannels().contains(TABBridge.CHANNEL_NAME);
+        channelRegistered = getListeningPluginChannels(0).contains(TABBridge.CHANNEL_NAME);
         if (vault) {
             RegisteredServiceProvider<Permission> rsp = Bukkit.getServicesManager().getRegistration(Permission.class);
             if (rsp != null) permission = rsp.getProvider();
+        }
+    }
+
+    @NotNull
+    private Set<String> getListeningPluginChannels(int depth) {
+        try {
+            return player.getListeningPluginChannels();
+        } catch (ArrayIndexOutOfBoundsException e) {
+            System.out.println("[TAB-Bridge] An error was thrown by Bukkit when getting player's channels. Trying again. Error: ");
+            e.printStackTrace();
+            // java.lang.ArrayIndexOutOfBoundsException: Index 50 out of bounds for length 50
+            //     at java.base/java.util.HashMap.keysToArray(HashMap.java:958)
+            //     at java.base/java.util.HashSet.toArray(HashSet.java:376)
+            //     at com.google.common.collect.ImmutableSet.copyOf(ImmutableSet.java:198)
+            //     at org.bukkit.craftbukkit.entity.CraftPlayer.getListeningPluginChannels(CraftPlayer.java:2465)
+            if (depth > 10) {
+                System.out.println("[TAB-Bridge] Failed to get player's channels after 10 attempts, giving up.");
+                return new HashSet<>();
+            } else {
+                return getListeningPluginChannels(depth + 1);
+            }
         }
     }
 

@@ -4,25 +4,21 @@ plugins {
 
 allprojects {
     group = "me.neznamy"
-    version = "6.1.5"
+    version = "6.2.0"
     description = "An addon to extend features with TAB on proxy"
 }
 
 val platforms = setOf(
-    projects.bukkit,
-    projects.bukkit.paper,
-    projects.fabric,
-    projects.fabric.v1182,
-    projects.fabric.v1194,
-    projects.fabric.v1204
-).map { it.dependencyProject }
-
+    ":bukkit",
+    ":bukkit:paper",
+    ":fabric"
+)
 val special = setOf(
-    projects.shared
-).map { it.dependencyProject }
+    ":shared"
+)
 
 subprojects {
-    when (this) {
+    when (path) {
         in platforms -> plugins.apply("tab.platform-conventions")
         in special -> plugins.apply("tab.standard-conventions")
         else -> plugins.apply("tab.base-conventions")
